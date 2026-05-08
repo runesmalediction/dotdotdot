@@ -14,6 +14,8 @@ struct FileEntry {
 #[derive(Deserialize)]
 pub struct Config {
     #[serde(default)]
+    pub git: bool,
+    #[serde(default)]
     managed: Vec<FileEntry>,
 }
 

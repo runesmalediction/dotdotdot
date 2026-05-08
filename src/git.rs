@@ -11,6 +11,8 @@ pub fn sync(dir: &Path) -> Result<()> {
     }
     tracing::debug!("config directory is a git repository, checking for updates");
 
+    commit_changes(dir)?;
+
     // Try `git fetch`
     let fetch = Command::new("git").args(["fetch"]).current_dir(dir).output();
     let fetch = match fetch {
@@ -73,6 +75,36 @@ pub fn sync(dir: &Path) -> Result<()> {
             }
         }
         _ => {}
+    }
+
+    Ok(())
+}
+
+/// Stage all changes and commit them if the working tree is dirty.
+fn commit_changes(dir: &Path) -> Result<()> {
+    let status = Command::new("git")
+        .args(["status", "--porcelain"])
+        .current_dir(dir)
+        .output()?;
+
+    if status.stdout.is_empty() {
+        return Ok(());
+    }
+
+    Command::new("git").args(["add", "-A"]).current_dir(dir).output()?;
+
+    let commit = Command::new("git")
+        .args(["commit", "-m", "auto: update dotfiles"])
+        .current_dir(dir)
+        .output()?;
+
+    if commit.status.success() {
+        tracing::info!("committed local changes");
+    } else {
+        tracing::warn!(
+            "git commit failed: {}",
+            String::from_utf8_lossy(&commit.stderr).trim()
+        );
     }
 
     Ok(())

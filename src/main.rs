@@ -29,10 +29,14 @@ fn run() -> Result<()> {
     let home_dir = get_home_dir()?;
     let config_dir = get_config_dir(&home_dir)?;
 
-    git::sync(&config_dir)?;
+    // Sync dotfiles using git
+    let config = Config::retrieve(&config_dir)?;
+    if config.git {
+        git::sync(&config_dir)?;
+    }
 
     // Get all managed files and check that that there are no unmanaged files
-    let allowed = Config::retrieve(&config_dir)?.into_allowed_list(&config_dir)?;
+    let allowed = config.into_allowed_list(&config_dir)?;
     allowed.check_all_managed(&config_dir)?;
 
     // Link all managed files
@@ -83,20 +87,4 @@ fn get_config_dir(home_dir: &Path) -> Result<Box<Path>> {
     tracing::debug!("found config directory at {s}.");
 
     Ok(dir.into_boxed_path())
-}
-
-/// Walk through nested directories, applying a fn to files.
-fn visit_dirs(dir: &Path, cb: &dyn Fn(&std::fs::DirEntry)) -> Result<()> {
-    if dir.is_dir() {
-        for entry in std::fs::read_dir(dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_dir() {
-                visit_dirs(&path, cb)?;
-            } else {
-                cb(&entry);
-            }
-        }
-    }
-    Ok(())
 }

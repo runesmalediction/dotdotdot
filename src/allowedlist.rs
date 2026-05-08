@@ -24,19 +24,21 @@ impl AllowedList {
         Self { files }
     }
 
-    /// Check if there are files in the config dir that are not managed.
+    /// Check if there are top-level entries in the config dir that are not managed.
     pub fn check_all_managed(&self, config_dir: &Path) -> Result<()> {
-        crate::visit_dirs(config_dir, &|entry| {
-            if !self
-                .files
-                .iter()
-                .any(|item| item.0.as_ref() == entry.path().as_path())
-            {
-                let s = entry.path().as_path().display().to_string();
-                tracing::warn!("non-managed file {s} in config directory")
-            }
-        })?;
+        // Ignore config files and directories that are always expected
+        let ignored = [".git", "config.toml"];
 
+        for entry in std::fs::read_dir(config_dir)? {
+            let path = entry?.path();
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if ignored.contains(&name) {
+                continue;
+            }
+            if !self.files.iter().any(|item| item.0.as_ref() == path) {
+                tracing::warn!("non-managed entry {} in config directory", path.display());
+            }
+        }
         Ok(())
     }
 }
