@@ -1,3 +1,5 @@
+//! Tracks which files in the config directory are explicitly managed.
+
 use std::path::{Path, PathBuf};
 
 use anyhow::Result;
@@ -13,8 +15,9 @@ pub enum ManageType {
     Linked(PathBuf),
 }
 
-/// Ensure that this application only handles certain allowed files by explicetly listing them.
+/// Ensures that this application only handles explicitly listed files.
 pub struct AllowedList {
+    /// Each managed file paired with its management type.
     pub files: Vec<(Box<Path>, ManageType)>,
 }
 

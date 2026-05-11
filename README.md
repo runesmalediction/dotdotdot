@@ -38,12 +38,13 @@ dotdotdot
 On each run it will:
 1. Optionally commit, pull, and push the config directory if it is a git repository (requires `git = true`)
 2. Warn about any untracked top-level entries in the config directory
-3. Create symlinks for all entries marked as `linked`
+3. Warn about any `requires` files missing from `vars/`, and any `vars/` files not required by any entry
+4. Create symlinks for all entries marked as `linked`
 
 dotdotdot reads its config from `~/.config/dotdotdot/config.toml`, which it creates on first run.
-All files are linked, so no rendering of config files is done.
-This is by designto keep dotdotdot simple and flexible.
-Possible variable files can be kept in a `vars/` folder in the config directory.
+All files are linked directly, so no rendering of config files is done.
+This is by design to keep dotdotdot simple and flexible.
+Variable files can be kept in a `vars/` folder in the config directory and sourced directly by your dotfiles.
 
 ## Features
 
@@ -51,6 +52,7 @@ Possible variable files can be kept in a `vars/` folder in the config directory.
 - **Git integration**: Optional automatic git commits, pulls, and pushes
 - **Simple configuration**: TOML-based config file with clear syntax
 - **Safety checks**: Warns about conflicting symlinks and untracked files
+- **Var file tracking**: Declare which var files each entry depends on, and warn about missing or unreferenced files
 - **Fast-forward only**: Git operations use fast-forward only to prevent merge conflicts
 
 ## Config
@@ -61,6 +63,7 @@ git = true  # enable automatic git sync (default: false)
 [[managed]]
 path = ".zshrc"
 manage = { linked = ".zshrc" }  # ~/.config/dotdotdot/.zshrc -> ~/.zshrc
+requires = ["secrets.sh"]       # warn if vars/secrets.sh is missing
 
 [[managed]]
 path = "nvim"
@@ -80,6 +83,20 @@ manage = "none"  # present in the config dir but not linked anywhere
 
 If a symlink target already exists and is not managed by dotdotdot, a warning is shown asking you to back it up and remove it before re-running.
 
+### Var files
+
+Variable files (secrets, machine-specific config, etc.) can be stored in a `vars/` folder inside the config directory. Since `vars/` is automatically added to `.gitignore` when git sync is enabled, these files are never committed.
+
+Your dotfiles can source them directly, for example:
+
+```sh
+source ~/.config/dotdotdot/vars/secrets.sh
+```
+
+Each managed entry can declare which var files it depends on via `requires`. dotdotdot will warn if:
+- A required var file is missing from `vars/`
+- A file in `vars/` is not required by any entry
+
 ### Git sync
 
 When `git = true` and `~/.config/dotdotdot/` is a git repository, dotdotdot will on each run:
@@ -91,4 +108,4 @@ When `git = true` and `~/.config/dotdotdot/` is a git repository, dotdotdot will
 
 ## License
 
-Licensed under the [Apache License 2.0](LICENSE).
+Licensed under the Apache License 2.0.

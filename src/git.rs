@@ -1,3 +1,5 @@
+//! Git operations for syncing the config directory with a remote.
+
 use std::path::Path;
 use std::process::Command;
 
@@ -45,7 +47,10 @@ pub fn sync(dir: &Path) -> Result<()> {
     commit_changes(dir)?;
 
     // Try `git fetch`
-    let fetch = Command::new("git").args(["fetch"]).current_dir(dir).output();
+    let fetch = Command::new("git")
+        .args(["fetch"])
+        .current_dir(dir)
+        .output();
     let fetch = match fetch {
         Ok(output) => output,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -55,7 +60,10 @@ pub fn sync(dir: &Path) -> Result<()> {
         Err(e) => return Err(e.into()),
     };
     if !fetch.status.success() {
-        tracing::warn!("git fetch failed: {}", String::from_utf8_lossy(&fetch.stderr).trim());
+        tracing::warn!(
+            "git fetch failed: {}",
+            String::from_utf8_lossy(&fetch.stderr).trim()
+        );
         return Ok(());
     }
 
@@ -94,7 +102,10 @@ pub fn sync(dir: &Path) -> Result<()> {
         (Some(0), Some(ahead)) if ahead > 0 => {
             tracing::info!("config repository is {ahead} commit(s) ahead, pushing");
 
-            let push = Command::new("git").args(["push"]).current_dir(dir).output()?;
+            let push = Command::new("git")
+                .args(["push"])
+                .current_dir(dir)
+                .output()?;
 
             if push.status.success() {
                 tracing::info!("config repository pushed successfully");
@@ -122,7 +133,10 @@ fn commit_changes(dir: &Path) -> Result<()> {
         return Ok(());
     }
 
-    Command::new("git").args(["add", "-A"]).current_dir(dir).output()?;
+    Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(dir)
+        .output()?;
 
     let commit = Command::new("git")
         .args(["commit", "-m", "auto: update dotfiles"])

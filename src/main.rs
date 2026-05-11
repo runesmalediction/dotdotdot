@@ -1,4 +1,4 @@
-//! Manages dotfiles.
+#![doc = include_str!("../README.md")]
 
 use std::path::Path;
 
@@ -13,6 +13,7 @@ mod config;
 mod git;
 mod linker;
 
+/// Entry point: initialises tracing then delegates to [`run`].
 fn main() {
     // Start tracing
     init_tracing();
@@ -47,7 +48,11 @@ fn run() -> Result<()> {
 
 /// Setup of the default tracing subscriber.
 fn init_tracing() {
-    let level = if cfg!(debug_assertions) { Level::TRACE } else { Level::INFO };
+    let level = if cfg!(debug_assertions) {
+        Level::TRACE
+    } else {
+        Level::INFO
+    };
 
     let subscriber = FmtSubscriber::builder()
         .with_max_level(level)
