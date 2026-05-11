@@ -3,6 +3,37 @@ use std::process::Command;
 
 use anyhow::Result;
 
+/// Ensures each pattern is listed in `<dir>/.gitignore`.
+pub fn ensure_gitignored(dir: &Path, patterns: &[&str]) -> Result<()> {
+    let gitignore = dir.join(".gitignore");
+
+    let mut contents = if gitignore.try_exists()? {
+        std::fs::read_to_string(&gitignore)?
+    } else {
+        String::new()
+    };
+
+    let mut changed = false;
+    for &pattern in patterns {
+        if contents.lines().any(|l| l.trim() == pattern) {
+            continue;
+        }
+        if !contents.is_empty() && !contents.ends_with('\n') {
+            contents.push('\n');
+        }
+        contents.push_str(pattern);
+        contents.push('\n');
+        changed = true;
+        tracing::debug!("added {pattern} to .gitignore");
+    }
+
+    if changed {
+        std::fs::write(&gitignore, &contents)?;
+    }
+
+    Ok(())
+}
+
 /// If `dir` is a git repository, sync with the remote: pull if behind, push if ahead.
 pub fn sync(dir: &Path) -> Result<()> {
     // Check that this is a git directory

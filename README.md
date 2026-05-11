@@ -41,6 +41,17 @@ On each run it will:
 3. Create symlinks for all entries marked as `linked`
 
 dotdotdot reads its config from `~/.config/dotdotdot/config.toml`, which it creates on first run.
+All files are linked, so no rendering of config files is done.
+This is by designto keep dotdotdot simple and flexible.
+Possible variable files can be kept in a `vars/` folder in the config directory.
+
+## Features
+
+- **Symlink management**: Automatically create and manage symlinks for your dotfiles
+- **Git integration**: Optional automatic git commits, pulls, and pushes
+- **Simple configuration**: TOML-based config file with clear syntax
+- **Safety checks**: Warns about conflicting symlinks and untracked files
+- **Fast-forward only**: Git operations use fast-forward only to prevent merge conflicts
 
 ## Config
 

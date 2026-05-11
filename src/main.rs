@@ -29,9 +29,9 @@ fn run() -> Result<()> {
     let home_dir = get_home_dir()?;
     let config_dir = get_config_dir(&home_dir)?;
 
-    // Sync dotfiles using git
     let config = Config::retrieve(&config_dir)?;
     if config.git {
+        git::ensure_gitignored(&config_dir, &["vars"])?;
         git::sync(&config_dir)?;
     }
 

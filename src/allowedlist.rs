@@ -26,8 +26,7 @@ impl AllowedList {
 
     /// Check if there are top-level entries in the config dir that are not managed.
     pub fn check_all_managed(&self, config_dir: &Path) -> Result<()> {
-        // Ignore config files and directories that are always expected
-        let ignored = [".git", "config.toml"];
+        let ignored = [".git", ".gitignore", "config.toml", "vars"];
 
         for entry in std::fs::read_dir(config_dir)? {
             let path = entry?.path();

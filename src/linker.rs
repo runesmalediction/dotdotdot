@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use anyhow::Result;
 
@@ -13,51 +13,47 @@ pub struct Linker<'a> {
 impl<'a> Linker<'a> {
     /// Creates a new [Linker] instance.
     pub fn new(allowed_list: &'a AllowedList, home_dir: &'a Path) -> Self {
-        Self {
-            allowed_list,
-            home_dir,
-        }
+        Self { allowed_list, home_dir }
     }
 
     /// Links all unlinked but managed files.
     pub fn check_and_link(&self) -> Result<()> {
-        for (config_path, target) in self.find_unlinked_files() {
-            if let Some(parent) = target.parent() {
-                std::fs::create_dir_all(parent)?;
+        for (config_path, manage) in &self.allowed_list.files {
+            match manage {
+                ManageType::None => {}
+                ManageType::Linked(target_rel) => {
+                    let target = self.home_dir.join(target_rel);
+                    self.link_if_needed(config_path, &target)?;
+                }
             }
-            std::os::unix::fs::symlink(config_path, &target)?;
-            tracing::info!("linked {} -> {}", target.display(), config_path.display());
         }
         Ok(())
     }
 
-    /// Returns `Linked` entries whose target path does not yet exist as a symlink.
-    fn find_unlinked_files(&self) -> Vec<(&Path, PathBuf)> {
-        self.allowed_list.files.iter()
-            .filter_map(|(config_path, manage)| {
-                let ManageType::Linked(target) = manage else { return None };
-                let target = self.home_dir.join(target);
+    fn link_if_needed(&self, source: &Path, target: &Path) -> Result<()> {
+        if target.is_symlink() {
+            if std::fs::read_link(target).ok().as_deref() != Some(source) {
+                tracing::warn!(
+                    "{} is already a symlink pointing elsewhere: back it up and remove it to allow linking",
+                    target.display()
+                );
+            }
+            return Ok(());
+        }
 
-                if target.is_symlink() {
-                    if std::fs::read_link(&target).ok().as_deref() != Some(config_path.as_ref()) {
-                        tracing::warn!(
-                            "{} is already a symlink pointing elsewhere: back it up and remove it to allow linking",
-                            target.display()
-                        );
-                    }
-                    return None;
-                }
+        if target.exists() {
+            tracing::warn!(
+                "{} already exists: back it up and remove it to allow linking",
+                target.display()
+            );
+            return Ok(());
+        }
 
-                if target.exists() {
-                    tracing::warn!(
-                        "{} already exists: back it up and remove it to allow linking",
-                        target.display()
-                    );
-                    return None;
-                }
-
-                Some((config_path.as_ref(), target))
-            })
-            .collect()
+        if let Some(parent) = target.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::os::unix::fs::symlink(source, target)?;
+        tracing::info!("linked {} -> {}", target.display(), source.display());
+        Ok(())
     }
 }
